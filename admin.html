@@ -167,7 +167,7 @@
             container.innerHTML = '<div class="loading">⏳ Loading...</div>';
 
             try {
-                const response = await fetch('http://localhost:5001/api/registrations');
+                const response = await fetch('/api/registrations');
                 const data = await response.json();
 
                 if (response.ok) {

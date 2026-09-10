@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admin - Registrations</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', 'Tahoma', 'Geneva', 'Verdana', 'sans-serif';
+            background: #f0f4f8;
+            padding: 40px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 { color: #1a202c; margin-bottom: 8px; }
+        .subtitle { color: #718096; margin-bottom: 30px; }
+        table {
+            width: 100%;
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        th {
+            background: #2d3748;
+            color: white;
+            padding: 15px;
+            text-align: left;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 14px;
+        }
+        tr:hover { background: #f7fafc; }
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #718096;
+            font-size: 18px;
+        }
+        .refresh-btn {
+            background: #4299e1;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-bottom: 20px;
+            font-size: 16px;
+        }
+        .refresh-btn:hover { background: #3182ce; }
+
+        .stats-row {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .stat-card {
+            background: white;
+            padding: 16px 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            flex: 1;
+            min-width: 160px;
+        }
+        .stat-card .label { color: #718096; font-size: 13px; margin-bottom: 4px; }
+        .stat-card .value { color: #2d3748; font-size: 24px; font-weight: 700; }
+        .stat-card.revenue .value { color: #48bb78; }
+        .stat-card.pending .value { color: #ed8936; }
+
+        .controls-row {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .search-input {
+            flex: 1;
+            min-width: 220px;
+            padding: 10px 14px;
+            border: 1px solid #cbd5e0;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        .filter-select {
+            padding: 10px 14px;
+            border: 1px solid #cbd5e0;
+            border-radius: 8px;
+            font-size: 14px;
+            background: white;
+        }
+        .no-results {
+            text-align: center;
+            padding: 40px;
+            color: #718096;
+            background: white;
+            border-radius: 12px;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .badge-paid { background: #c6f6d5; color: #22543d; }
+        .badge-pending { background: #fefcbf; color: #975a16; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📋 Registrations Admin</h1>
+        <p class="subtitle">View all trip registrations</p>
+
+        <button class="refresh-btn" onclick="loadRegistrations()">🔄 Refresh</button>
+
+        <div class="stats-row">
+            <div class="stat-card">
+                <div class="label">Total Registrations</div>
+                <div class="value" id="statTotal">–</div>
+            </div>
+            <div class="stat-card revenue">
+                <div class="label">Revenue Collected (GHS)</div>
+                <div class="value" id="statRevenue">–</div>
+            </div>
+            <div class="stat-card pending">
+                <div class="label">Pending Payment</div>
+                <div class="value" id="statPending">–</div>
+            </div>
+        </div>
+
+        <div class="controls-row">
+            <input
+                type="text"
+                id="searchInput"
+                class="search-input"
+                placeholder="Search by name or email..."
+                oninput="renderTable()"
+            />
+            <select id="statusFilter" class="filter-select" onchange="renderTable()">
+                <option value="all">All statuses</option>
+                <option value="paid">Paid only</option>
+                <option value="pending">Pending only</option>
+            </select>
+        </div>
+
+        <div id="registrations">
+            <div class="loading">⏳ Loading registrations...</div>
+        </div>
+    </div>
+
+    <script>
+        let allRegistrations = [];
+
+        async function loadRegistrations() {
+            const container = document.getElementById('registrations');
+            container.innerHTML = '<div class="loading">⏳ Loading...</div>';
+
+            try {
+                const response = await fetch('http://localhost:5001/api/registrations');
+                const data = await response.json();
+
+                if (response.ok) {
+                    allRegistrations = data;
+                    updateStats(data);
+                    renderTable();
+                } else {
+                    container.innerHTML = `<div class="loading">❌ Error: ${data.error || 'Failed to load'}</div>`;
+                }
+            } catch (error) {
+                container.innerHTML = `<div class="loading">❌ Network error. Make sure the server is running.</div>`;
+            }
+        }
+
+        function updateStats(data) {
+            const total = data.length;
+            const paidRows = data.filter(r => r.payment_status);
+            const pendingCount = total - paidRows.length;
+            const revenue = paidRows.reduce((sum, r) => sum + (Number(r.amount) || 0), 0);
+
+            document.getElementById('statTotal').textContent = total;
+            document.getElementById('statRevenue').textContent = revenue.toLocaleString('en-GH', { minimumFractionDigits: 2 });
+            document.getElementById('statPending').textContent = pendingCount;
+        }
+
+        function renderTable() {
+            const container = document.getElementById('registrations');
+            const searchTerm = document.getElementById('searchInput').value.trim().toLowerCase();
+            const statusFilter = document.getElementById('statusFilter').value;
+
+            let filtered = allRegistrations.filter(reg => {
+                const matchesSearch =
+                    !searchTerm ||
+                    reg.full_name?.toLowerCase().includes(searchTerm) ||
+                    reg.email?.toLowerCase().includes(searchTerm);
+
+                const matchesStatus =
+                    statusFilter === 'all' ||
+                    (statusFilter === 'paid' && reg.payment_status) ||
+                    (statusFilter === 'pending' && !reg.payment_status);
+
+                return matchesSearch && matchesStatus;
+            });
+
+            if (filtered.length === 0) {
+                container.innerHTML = '<div class="no-results">No matching registrations</div>';
+                return;
+            }
+
+            let html = '<table>';
+            html += `
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Phone</th>
+                        <th>Level</th>
+                        <th>Programme</th>
+                        <th>Payment</th>
+                        <th>Consent</th>
+                        <th>Registered</th>
+                    </tr>
+                </thead>
+                <tbody>
+            `;
+
+            filtered.forEach((reg, index) => {
+                const paymentStatus = reg.payment_status
+                    ? '<span class="badge badge-paid">Paid</span>'
+                    : '<span class="badge badge-pending">Pending</span>';
+
+                const consent = reg.emergency_consent ? '✅' : '❌';
+                const date = new Date(reg.created_at).toLocaleDateString();
+
+                html += `
+                    <tr>
+                        <td>${index + 1}</td>
+                        <td><strong>${reg.full_name}</strong></td>
+                        <td>${reg.email}</td>
+                        <td>${reg.phone}</td>
+                        <td>${reg.level}</td>
+                        <td>${reg.programme}</td>
+                        <td>${paymentStatus}</td>
+                        <td>${consent}</td>
+                        <td>${date}</td>
+                    </tr>
+                `;
+            });
+
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        }
+
+        loadRegistrations();
+    </script>
+</body>
+</html>

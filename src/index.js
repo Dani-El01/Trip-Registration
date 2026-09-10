@@ -11,6 +11,8 @@ require('dotenv').config();
 const app = express();
 const port = process.env.PORT || 5001;
 
+app.use(express.static(path.join(__dirname, '..')));
+
 // Initialize Supabase
 const supabase = createClient(
     process.env.SUPABASE_URL,

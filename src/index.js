@@ -90,12 +90,12 @@ app.post(
 
                 console.log('✅ Payment confirmed via webhook. Reference:', reference);
 
-                const { data: updated, error } = await supabase
-                    .from('registrations')
-                    .update({ payment_status: true })
-                    .eq('transaction_ref', reference)
-                    .select()
-                    .single();
+               const { data: updated, error } = await supabase
+                  .from('registrations')
+                  .update({ payment_status: true, paid_at: new Date().toISOString() })
+                  .eq('transaction_ref', reference)
+                  .select()
+                  .single();
 
                 if (error) {
                     console.log('❌ Failed to update payment_status:', error.message);

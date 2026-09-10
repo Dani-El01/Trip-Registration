@@ -228,6 +228,7 @@
                         <th>Level</th>
                         <th>Programme</th>
                         <th>Payment</th>
+                        <th>Paid At</th>
                         <th>Consent</th>
                         <th>Registered</th>
                     </tr>
@@ -242,20 +243,24 @@
 
                 const consent = reg.emergency_consent ? '✅' : '❌';
                 const date = new Date(reg.created_at).toLocaleDateString();
+const paidAt = reg.paid_at
+    ? new Date(reg.paid_at).toLocaleString('en-GH', { dateStyle: 'medium', timeStyle: 'short' })
+    : '—';
 
-                html += `
-                    <tr>
-                        <td>${index + 1}</td>
-                        <td><strong>${reg.full_name}</strong></td>
-                        <td>${reg.email}</td>
-                        <td>${reg.phone}</td>
-                        <td>${reg.level}</td>
-                        <td>${reg.programme}</td>
-                        <td>${paymentStatus}</td>
-                        <td>${consent}</td>
-                        <td>${date}</td>
-                    </tr>
-                `;
+html += `
+    <tr>
+        <td>${index + 1}</td>
+        <td><strong>${reg.full_name}</strong></td>
+        <td>${reg.email}</td>
+        <td>${reg.phone}</td>
+        <td>${reg.level}</td>
+        <td>${reg.programme}</td>
+        <td>${paymentStatus}</td>
+        <td>${paidAt}</td>
+        <td>${consent}</td>
+        <td>${date}</td>
+    </tr>
+`;
             });
 
             html += '</tbody></table>';
